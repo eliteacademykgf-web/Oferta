@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Оферта о бронировании — Elite Academy KG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Raleway:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/offer.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <div class="brand">ELITE <span>ACADEMY</span></div>
+      <div class="doc-no" id="docNo"></div>
+    </div>
+    <div class="progress-line"><i id="progressBar"></i></div>
+  </header>
+
+  <div id="loading" class="skeleton">Загружаем документ…</div>
+
+  <main id="app" hidden>
+    <section class="hero">
+      <div class="wrap">
+        <div class="pill" id="heroPill">Документ для ознакомления и подписания</div>
+        <h1>Оферта о бронировании места на программе сопровождения</h1>
+        <p class="lead" id="heroLead"></p>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <div class="summary" id="summary"></div>
+
+      <!-- Шаг 1 -->
+      <section class="step">
+        <div class="step-head"><div class="step-num">1</div><h2>Ваши данные</h2></div>
+        <p class="hint">Данные попадут в документ и должны совпадать с паспортом. Их видите только вы и ваш менеджер.</p>
+        <div class="grid2">
+          <div class="field" id="f-fullName">
+            <label>ФИО полностью <i>*</i></label>
+            <input id="fullName" autocomplete="name" placeholder="Иванов Иван Иванович" />
+            <div class="err">Укажите фамилию и имя полностью</div>
+          </div>
+          <div class="field" id="f-phone">
+            <label>Телефон (WhatsApp) <i>*</i></label>
+            <input id="phone" inputmode="tel" autocomplete="tel" placeholder="+996 700 000 000" />
+            <div class="err">Укажите корректный номер</div>
+          </div>
+          <div class="field" id="f-docNumber">
+            <label>Паспорт / ID <i>*</i></label>
+            <input id="docNumber" placeholder="ID1234567" />
+            <div class="err">Укажите номер документа</div>
+          </div>
+          <div class="field" id="f-birthDate">
+            <label>Дата рождения</label>
+            <input id="birthDate" type="date" />
+            <div class="err">Проверьте дату</div>
+          </div>
+          <div class="field" id="f-email">
+            <label>E-mail</label>
+            <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="name@mail.com" />
+            <div class="err">Проверьте адрес</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Шаг 2 -->
+      <section class="step">
+        <div class="step-head"><div class="step-num">2</div><h2>Условия оферты</h2></div>
+        <p class="hint">Прочитайте каждый раздел до конца — после этого откроется отметка «Я понимаю». Отметки фиксируются с датой и временем.</p>
+        <div id="sections"></div>
+      </section>
+
+      <!-- Шаг 3 -->
+      <section class="step" id="signStep">
+        <div class="step-head"><div class="step-num">3</div><h2>Подпись</h2></div>
+        <p class="hint">Распишитесь пальцем или мышью — подпись войдёт в PDF-документ вместе с датой, временем и вашими отметками.</p>
+
+        <div class="sign-pad" id="signPad">
+          <canvas id="canvas"></canvas>
+          <div class="sign-ph">Распишитесь здесь</div>
+        </div>
+        <div class="sign-tools">
+          <span class="muted">Простая электронная подпись (п. 11.2 оферты)</span>
+          <button type="button" class="link-btn" id="clearSign">Очистить</button>
+        </div>
+
+        <div class="field" id="f-typedName" style="margin-top:16px">
+          <label>Впишите своё ФИО ещё раз — это подтверждение подписи <i>*</i></label>
+          <input id="typedName" placeholder="Иванов Иван Иванович" />
+          <div class="err">ФИО должно совпадать с указанным в анкете</div>
+        </div>
+
+        <div id="finalAckHolder"></div>
+
+        <div class="msg error" id="formError"></div>
+
+        <p class="muted center" id="submitHint" style="margin-top:16px"></p>
+        <button class="btn wide" id="submitBtn" disabled>Подписать оферту</button>
+        <p class="muted center" style="margin-top:12px">Нажимая кнопку, вы принимаете оферту. Оплата брони производится только после этого — по реквизитам, которые пришлёт менеджер.</p>
+      </section>
+    </div>
+
+    <div class="bottombar">
+      <div class="bottombar-in">
+        <div class="cnt">Отмечено <b id="ackCount">0</b> из <span id="ackTotal">0</span></div>
+        <button class="btn" id="jumpBtn">Далее</button>
+      </div>
+    </div>
+
+    <div class="footer" id="footer"></div>
+  </main>
+
+  <!-- Экран после подписания -->
+  <main id="doneScreen" class="wrap" hidden>
+    <div class="done">
+      <div class="tick">✓</div>
+      <h2>Оферта подписана</h2>
+      <p class="muted" style="margin-top:10px">Скачайте PDF-документ и отправьте его вашему менеджеру в WhatsApp — после этого он пришлёт реквизиты для оплаты брони.</p>
+      <a class="btn wide" id="pdfLink" style="margin-top:18px" href="#">Скачать PDF-документ</a>
+      <div class="meta" id="doneMeta"></div>
+      <p class="muted" style="margin-top:16px">Копия документа сохранена у Компании. Ссылка на скачивание остаётся действительной.</p>
+    </div>
+    <div class="footer" id="footer2"></div>
+  </main>
+
+  <script src="/assets/offer.js"></script>
+</body>
+</html>

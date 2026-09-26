@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Оферты — кабинет менеджера · Elite Academy KG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Raleway:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/offer.css" />
+  <link rel="stylesheet" href="/assets/manager.css" />
+</head>
+<body class="mgr">
+  <header class="topbar">
+    <div class="topbar-in">
+      <div class="brand">ELITE <span>ACADEMY</span></div>
+      <div class="doc-no">Кабинет менеджера · оферты</div>
+    </div>
+  </header>
+
+  <!-- вход -->
+  <main id="auth" class="wrap" style="max-width:420px">
+    <section class="step" style="margin-top:60px">
+      <h2>Вход</h2>
+      <p class="hint">Введите токен доступа (ADMIN_TOKEN из настроек модуля).</p>
+      <div class="field">
+        <label>Токен</label>
+        <input id="tokenInput" type="password" placeholder="••••••••" />
+      </div>
+      <div class="msg error" id="authError"></div>
+      <button class="btn wide" id="loginBtn" style="margin-top:14px">Войти</button>
+    </section>
+  </main>
+
+  <!-- кабинет -->
+  <main id="panel" class="wrap wide-wrap" hidden>
+    <section class="step">
+      <div class="step-head"><div class="step-num">+</div><h2>Новая ссылка на оферту</h2></div>
+      <p class="hint">Заполните имя клиента — ссылка станет персональной, а в тексте для WhatsApp появится обращение.</p>
+      <div class="grid2">
+        <div class="field"><label>Имя клиента</label><input id="clientName" placeholder="Айжан Сатылганова" /></div>
+        <div class="field"><label>Телефон клиента</label><input id="phone" placeholder="+996 700 000 000" /></div>
+        <div class="field"><label>Менеджер</label><input id="createdBy" placeholder="Эрбол" /></div>
+        <div class="field"><label>Пакет / программа</label><input id="packageName" placeholder="по умолчанию" /></div>
+      </div>
+      <details style="margin-top:12px">
+        <summary class="link-btn" style="cursor:pointer">Изменить условия для этого клиента</summary>
+        <div class="grid2" style="margin-top:12px">
+          <div class="field"><label>Бронирующий платёж, сом</label><input id="bookingFee" inputmode="numeric" /></div>
+          <div class="field"><label>Скидка, $</label><input id="discountUsd" inputmode="numeric" /></div>
+          <div class="field"><label>Второй транш от, сом</label><input id="secondTrancheMin" inputmode="numeric" /></div>
+          <div class="field"><label>Второй транш до, сом</label><input id="secondTrancheMax" inputmode="numeric" /></div>
+          <div class="field"><label>Срок брони, дней</label><input id="bookingDays" inputmode="numeric" /></div>
+          <div class="field"><label>Срок оплаты брони, часов</label><input id="payWindowHours" inputmode="numeric" /></div>
+        </div>
+      </details>
+      <div class="field" style="margin-top:12px"><label>Заметка (не показывается клиенту)</label><input id="note" placeholder="источник заявки, договорённости" /></div>
+      <div class="msg error" id="createError"></div>
+      <button class="btn" id="createBtn" style="margin-top:14px">Создать ссылку</button>
+
+      <div class="created" id="created" hidden>
+        <div class="created-row"><b>Ссылка для клиента</b><code id="createdUrl"></code></div>
+        <textarea id="waText" rows="7" readonly></textarea>
+        <div class="btn-row">
+          <button class="btn ghost" id="copyUrl">Копировать ссылку</button>
+          <button class="btn ghost" id="copyWa">Копировать текст для WhatsApp</button>
+          <a class="btn" id="waLink" target="_blank" rel="noopener">Открыть WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="step-head"><div class="step-num">≡</div><h2>Оферты</h2></div>
+      <div class="filters">
+        <button class="chip active" data-filter="all">Все</button>
+        <button class="chip" data-filter="draft">Ждут подписи</button>
+        <button class="chip" data-filter="signed">Подписаны</button>
+        <button class="chip" data-filter="deadline">Срок брони идёт</button>
+        <button class="chip" data-filter="cancelled">Отменены</button>
+        <button class="link-btn" id="refreshBtn" style="margin-left:auto">Обновить</button>
+      </div>
+      <div id="list"></div>
+    </section>
+  </main>
+
+  <script src="/assets/manager.js"></script>
+</body>
+</html>

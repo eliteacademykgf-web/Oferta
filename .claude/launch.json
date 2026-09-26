@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "elite-offer",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/nurzaman/Documents/elite-offer", "run", "dev"],
+      "port": 4010
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "elite-offer",
+  "version": "1.0.0",
+  "description": "Модуль публичной оферты о бронировании для eliteacademy.kg: подписание клиентом и PDF-протокол акцепта",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test/smoke.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.22.2",
+    "pdfkit": "^0.19.1"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}
