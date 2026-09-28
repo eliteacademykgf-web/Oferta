@@ -1,0 +1,18 @@
+[Unit]
+Description=Elite Academy — модуль оферты (elite-offer)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/elite-offer
+EnvironmentFile=/home/elite-offer/.env
+ExecStart=/root/.nvm/versions/node/v24.13.0/bin/node /home/elite-offer/server.js
+Restart=on-failure
+RestartSec=3
+Environment=PATH=/root/.nvm/versions/node/v24.13.0/bin:/usr/bin:/bin
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
