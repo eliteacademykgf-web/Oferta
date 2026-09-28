@@ -89,6 +89,18 @@ data/                     — подписи и PDF (в git не попадае�
 - Отдельный акт об оказании услуги бронирования не нужен — п. 2.3 оферты закрывает это,
   а протокол акцепта служит подтверждением.
 
+## Продакшн
+
+Модуль развёрнут на дроплете `159.89.38.67`: **https://offer.eliteacademy.kg**
+(nginx + systemd-юнит `elite-offer`, конфиги — в `deploy/`).
+
+Обновление — автоматом при `git push` в `main`: GitHub Actions (`.github/workflows/deploy.yml`)
+заходит на сервер по SSH-ключу с forced command (`/root/deploy-elite-offer.sh`) и выполняет
+`git pull` + `npm ci --omit=dev` + `systemctl restart elite-offer`. Секреты `SSH_HOST`, `SSH_USER`,
+`SSH_PRIVATE_KEY` — в Settings → Secrets репозитория.
+
+Ниже — исторические инструкции по деплою с нуля (Railway или ручная настройка дроплета).
+
 ## Деплой на Railway
 
 Модуль уже подготовлен: порт берётся из `PORT`, домен — из `RAILWAY_PUBLIC_DOMAIN`,
