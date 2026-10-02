@@ -14,6 +14,9 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^4.22.2",
+    "multer": "^2.4.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.6.205",
     "pdfkit": "^0.19.1"
   },
   "private": true,

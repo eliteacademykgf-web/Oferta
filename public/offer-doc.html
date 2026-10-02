@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Документ для подписания — Elite Academy KG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Raleway:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/offer.css" />
+  <link rel="stylesheet" href="/assets/offer-doc.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <div class="brand">ELITE <span>ACADEMY</span></div>
+      <div class="doc-no" id="docNo"></div>
+    </div>
+    <div class="progress-line"><i id="progressBar"></i></div>
+  </header>
+
+  <div id="loading" class="skeleton">Загружаем документ…</div>
+
+  <!-- 1. Стартовый экран -->
+  <main id="intro" hidden>
+    <section class="hero">
+      <div class="wrap">
+        <div class="pill">Документ для ознакомления и подписания</div>
+        <h1 id="docTitle"></h1>
+        <p class="lead" id="introLead"></p>
+      </div>
+    </section>
+    <div class="wrap">
+      <div class="summary" id="introCards"></div>
+      <section class="step">
+        <div class="step-head"><div class="step-num">i</div><h2>Как подписать</h2></div>
+        <p class="hint" style="font-size:15px;color:var(--text)">
+          Внимательно ознакомьтесь с документом. Для продолжения необходимо подтвердить ознакомление
+          с каждой страницей. После ознакомления со всеми страницами необходимо указать ФИО
+          и поставить электронную подпись.
+        </p>
+        <ol class="how">
+          <li>Откройте страницу и прочитайте её.</li>
+          <li>Отметьте «Я ознакомился(ась) с содержанием данной страницы» — откроется следующая.</li>
+          <li>После последней страницы укажите ФИО и распишитесь пальцем или мышью.</li>
+        </ol>
+        <button class="btn wide" id="startBtn" style="margin-top:18px">Начать ознакомление</button>
+      </section>
+      <div class="footer" id="footer"></div>
+    </div>
+  </main>
+
+  <!-- 2. Постраничный просмотр -->
+  <main id="viewer" hidden>
+    <div class="wrap wide-doc">
+      <div class="page-head">
+        <h2 id="pageLabel">Страница 1 из 1</h2>
+        <div class="zoom">
+          <button type="button" class="chip-btn" id="zoomOut" aria-label="Мельче">−</button>
+          <span id="zoomLabel">100%</span>
+          <button type="button" class="chip-btn" id="zoomIn" aria-label="Крупнее">+</button>
+        </div>
+      </div>
+      <div class="pages-strip" id="pagesStrip"></div>
+
+      <div class="paper-scroll" id="paperScroll">
+        <div class="paper" id="paper">
+          <canvas id="pageCanvas"></canvas>
+          <div class="paper-loading" id="paperLoading">Загружаем страницу…</div>
+        </div>
+      </div>
+
+      <label class="ack locked" id="pageAck">
+        <input type="checkbox" id="pageAckInput" disabled />
+        <span>
+          <span class="ack-text">Я ознакомился(ась) с содержанием данной страницы.</span>
+          <span class="lock-note" id="pageAckNote">Просмотрите страницу — отметка станет доступна через пару секунд</span>
+          <span class="ack-time" id="pageAckTime"></span>
+        </span>
+      </label>
+      <div class="msg error" id="pageError"></div>
+    </div>
+
+    <div class="bottombar">
+      <div class="bottombar-in">
+        <button class="btn ghost" id="prevBtn">Назад</button>
+        <div class="cnt">Подтверждено <b id="ackCount">0</b> из <span id="ackTotal">0</span></div>
+        <button class="btn" id="nextBtn" disabled>Следующая страница</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 3. Данные подписанта и подпись -->
+  <main id="signScreen" hidden>
+    <div class="wrap">
+      <div class="msg info show" style="margin-top:18px">Все страницы подтверждены. Осталось указать ваши данные и поставить подпись.</div>
+
+      <section class="step">
+        <div class="step-head"><div class="step-num">1</div><h2>Данные подписанта</h2></div>
+        <div class="grid2">
+          <div class="field" id="f-fullName">
+            <label>ФИО полностью <i>*</i></label>
+            <input id="fullName" autocomplete="name" placeholder="Фамилия Имя Отчество" />
+            <div class="err">Укажите фамилию, имя и отчество (если есть)</div>
+          </div>
+          <div class="field" id="f-phone">
+            <label>Телефон</label>
+            <input id="phone" inputmode="tel" autocomplete="tel" placeholder="+996 700 000 000" />
+            <div class="err">Проверьте номер</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" id="signStep">
+        <div class="step-head"><div class="step-num">2</div><h2>Электронная подпись</h2></div>
+        <p class="hint">Распишитесь пальцем или мышью. Подпись войдёт в подписанный документ вместе с датой, временем и отметками о прочтении страниц.</p>
+        <div class="sign-pad" id="signPad">
+          <canvas id="canvas"></canvas>
+          <div class="sign-ph">Распишитесь здесь</div>
+        </div>
+        <div class="sign-tools">
+          <span class="muted">Простая электронная подпись</span>
+          <button type="button" class="link-btn" id="clearSign">Очистить</button>
+        </div>
+
+        <label class="ack critical" id="finalAck">
+          <input type="checkbox" id="finalAckInput" />
+          <span><span class="ack-text" id="finalAckText"></span></span>
+        </label>
+
+        <div class="msg error" id="formError"></div>
+        <p class="muted center" id="submitHint" style="margin-top:16px"></p>
+        <button class="btn wide" id="submitBtn" disabled>Подписать документ</button>
+        <p class="center" style="margin-top:12px"><button type="button" class="link-btn" id="backToDoc">Вернуться к документу</button></p>
+      </section>
+      <div class="footer" id="footer2"></div>
+    </div>
+  </main>
+
+  <!-- 4. Готово -->
+  <main id="doneScreen" class="wrap" hidden>
+    <div class="done">
+      <div class="tick">✓</div>
+      <h2>Документ успешно подписан</h2>
+      <p class="muted" style="margin-top:10px">Скачайте подписанный документ: в нём все страницы, ваша подпись и лист подписания с электронным следом (время подтверждения каждой страницы, IP, устройство, хеш документа).</p>
+      <a class="btn wide" id="pdfLink" style="margin-top:18px" href="#">Скачать подписанный документ</a>
+      <div class="meta" id="doneMeta"></div>
+      <p class="muted" style="margin-top:16px">Копия документа сохранена у компании. Ссылка на скачивание остаётся действительной.</p>
+    </div>
+    <div class="footer" id="footer3"></div>
+  </main>
+
+  <script type="module" src="/assets/offer-doc.js"></script>
+</body>
+</html>

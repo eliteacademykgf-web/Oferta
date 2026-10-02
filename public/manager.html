@@ -35,7 +35,45 @@
 
   <!-- кабинет -->
   <main id="panel" class="wrap wide-wrap" hidden>
-    <section class="step">
+    <div class="tabs">
+      <button class="tab active" data-tab="docTab">Документ Word</button>
+      <button class="tab" data-tab="textTab">Оферта о бронировании</button>
+    </div>
+
+    <section class="step" id="docTab">
+      <div class="step-head"><div class="step-num">+</div><h2>Загрузить документ Word</h2></div>
+      <p class="hint">Загрузите готовый документ в формате .docx — система подготовит его к просмотру по страницам и создаст персональную ссылку. Клиент подтвердит каждую страницу, укажет ФИО и распишется.</p>
+      <div class="field">
+        <label>Файл .docx <i>*</i></label>
+        <label class="file-drop" id="fileDrop">
+          <input type="file" id="docFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+          <span id="fileName">Выберите файл или перетащите его сюда</span>
+        </label>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label>Название для клиента</label><input id="docTitleInput" placeholder="по умолчанию — имя файла" /></div>
+        <div class="field"><label>Имя клиента</label><input id="docClientName" placeholder="Айжан Сатылганова" /></div>
+        <div class="field"><label>Телефон клиента</label><input id="docPhone" placeholder="+996 700 000 000" /></div>
+        <div class="field"><label>Менеджер</label><input id="docCreatedBy" placeholder="Эрбол" /></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>Заметка (не показывается клиенту)</label><input id="docNote" placeholder="источник заявки, договорённости" /></div>
+      <div class="msg error" id="docError"></div>
+      <button class="btn" id="uploadBtn" style="margin-top:14px">Загрузить и создать ссылку</button>
+
+      <div class="created" id="docCreated" hidden>
+        <div class="created-row"><b>Документ готов</b><span id="docCreatedInfo"></span></div>
+        <div class="created-row"><b>Ссылка для клиента</b><code id="docCreatedUrl"></code></div>
+        <textarea id="docWaText" rows="7" readonly></textarea>
+        <div class="btn-row">
+          <button class="btn ghost" id="docPreview">Посмотреть, как увидит клиент</button>
+          <button class="btn ghost" id="docCopyUrl">Копировать ссылку</button>
+          <button class="btn ghost" id="docCopyWa">Копировать текст для WhatsApp</button>
+          <a class="btn" id="docWaLink" target="_blank" rel="noopener">Открыть WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="textTab" hidden>
       <div class="step-head"><div class="step-num">+</div><h2>Новая ссылка на оферту</h2></div>
       <p class="hint">Заполните имя клиента — ссылка станет персональной, а в тексте для WhatsApp появится обращение.</p>
       <div class="grid2">
@@ -74,6 +112,8 @@
       <div class="step-head"><div class="step-num">≡</div><h2>Оферты</h2></div>
       <div class="filters">
         <button class="chip active" data-filter="all">Все</button>
+        <button class="chip" data-filter="docx">Документы Word</button>
+        <button class="chip" data-filter="viewing">Клиент просматривает</button>
         <button class="chip" data-filter="draft">Ждут подписи</button>
         <button class="chip" data-filter="signed">Подписаны</button>
         <button class="chip" data-filter="deadline">Срок брони идёт</button>

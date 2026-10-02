@@ -13,8 +13,10 @@ const config = require('./config');
 
 const dbFile = path.join(config.dataDir, 'offers.json');
 const pdfDir = path.join(config.dataDir, 'pdf');
+const docsDir = path.join(config.dataDir, 'docs');
 
 fs.mkdirSync(pdfDir, { recursive: true });
+fs.mkdirSync(docsDir, { recursive: true });
 
 let cache = null;
 let writeChain = Promise.resolve();
@@ -71,4 +73,9 @@ function pdfPath(offer) {
   return path.join(pdfDir, `${offer.docNumber.replace(/[^\w-]/g, '_')}.pdf`);
 }
 
-module.exports = { createOffer, listOffers, findByToken, findById, updateOffer, pdfPath, pdfDir };
+// Исходный .docx и его PDF-версия для просмотра. id — UUID, поэтому путь безопасен.
+function docDir(id) {
+  return path.join(docsDir, id);
+}
+
+module.exports = { createOffer, listOffers, findByToken, findById, updateOffer, pdfPath, pdfDir, docDir };

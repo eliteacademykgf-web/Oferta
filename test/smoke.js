@@ -6,7 +6,7 @@
  *   npm test
  */
 
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const crypto = require('crypto');
 const os = require('os');
 const path = require('path');
@@ -166,8 +166,119 @@ async function run() {
   const cancel = await api(`/api/admin/offers/${offer.id}/cancel`, { method: 'POST', headers: { 'x-admin-token': ADMIN } });
   assert.strictEqual(cancel.status, 409);
   ok('подписанную оферту отменить нельзя');
+}
 
-  console.log(`\n  Все проверки пройдены: ${checks}\n`);
+// ------------------------------------------------- загруженный Word-документ
+
+function converterAvailable() {
+  if (process.env.SOFFICE_DOCKER_IMAGE) return true;
+  try {
+    execFileSync(process.env.SOFFICE_BIN || 'soffice', ['--version'], { stdio: 'ignore', timeout: 30000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function uploadDocx(buffer, name, fields = {}) {
+  const form = new FormData();
+  form.append('file', new Blob([buffer]), name);
+  Object.entries(fields).forEach(([k, v]) => form.append(k, v));
+  const res = await fetch(`${BASE}/api/admin/docs`, { method: 'POST', headers: { 'x-admin-token': ADMIN }, body: form });
+  return { status: res.status, body: await res.json().catch(() => ({})) };
+}
+
+async function runDocx() {
+  const fixture = fs.readFileSync(path.join(__dirname, 'fixtures', 'sample.docx'));
+  const up = await uploadDocx(fixture, 'Тестовая оферта.docx', { clientName: 'Иванова Айгерим', createdBy: 'Эрбол' });
+  assert.strictEqual(up.status, 201, JSON.stringify(up.body));
+  const offer = up.body.offer;
+  assert.strictEqual(offer.kind, 'docx');
+  assert.strictEqual(offer.pageCount, 3);
+  assert.strictEqual(offer.docTitle, 'Тестовая оферта');
+  assert.strictEqual(offer.stage, 'ready');
+  assert.match(offer.docNumber, /^EA-DOC-\d{6}-\d{4}$/);
+  ok('менеджер загружает .docx: документ подготовлен, 3 страницы, кириллица в имени файла цела');
+
+  const bad = await uploadDocx(Buffer.from('not a docx'), 'fake.docx');
+  assert.strictEqual(bad.status, 400);
+  const wrongExt = await uploadDocx(fixture, 'doc.pdf');
+  assert.strictEqual(wrongExt.status, 400);
+  ok('не-.docx и повреждённые файлы отклоняются');
+
+  const T = offer.token;
+  const view = await api(`/api/offers/${T}`);
+  assert.strictEqual(view.body.kind, 'docx');
+  assert.strictEqual(view.body.pageCount, 3);
+  const pdfRes = await fetch(`${BASE}${view.body.sourcePdfUrl}`);
+  assert.strictEqual(pdfRes.status, 200);
+  assert.strictEqual(pdfRes.headers.get('content-type'), 'application/pdf');
+  ok('клиент получает документ и его PDF-версию для постраничного просмотра');
+
+  const post = (url, body) => api(url, { method: 'POST', body: JSON.stringify(body || {}) });
+  assert.strictEqual((await post(`/api/offers/${T}/pages/2/ack`)).status, 409);
+  assert.strictEqual((await post(`/api/offers/${T}/pages/3/view`)).status, 409);
+  assert.strictEqual((await post(`/api/offers/${T}/pages/1/ack`)).status, 409, 'без просмотра отметка не должна приниматься');
+  ok('нельзя перескочить страницу и нельзя отметить страницу, не открыв её');
+
+  const signBody = {
+    fullName: 'Иванова Айгерим Маратовна',
+    phone: '+996 555 010203',
+    signatureImage: makePng(220, 70),
+    finalAck: true,
+    finalAckAt: new Date().toISOString(),
+  };
+
+  assert.strictEqual((await post(`/api/offers/${T}/pages/1/view`)).status, 200);
+  await sleep(1100);
+  assert.strictEqual((await post(`/api/offers/${T}/pages/1/ack`)).status, 200);
+  const early = await post(`/api/offers/${T}/sign`, signBody);
+  assert.strictEqual(early.status, 400);
+  assert.match(early.body.error, /страницей 2/);
+  ok('подписать, не подтвердив все страницы, нельзя');
+
+  for (const n of [2, 3]) {
+    assert.strictEqual((await post(`/api/offers/${T}/pages/${n}/view`)).status, 200);
+    await sleep(1100);
+    const ack = await post(`/api/offers/${T}/pages/${n}/ack`);
+    assert.strictEqual(ack.status, 200, JSON.stringify(ack.body));
+  }
+  const list = await api('/api/admin/offers', { headers: { 'x-admin-token': ADMIN } });
+  assert.strictEqual(list.body.offers.find((o) => o.id === offer.id).stage, 'awaiting_signature');
+  ok('страницы подтверждаются по порядку, этап в кабинете — «ожидает подписания»');
+
+  assert.strictEqual((await post(`/api/offers/${T}/sign`, { ...signBody, finalAck: false })).status, 400);
+  assert.strictEqual((await post(`/api/offers/${T}/sign`, { ...signBody, fullName: 'Айгерим' })).status, 400);
+  const signed = await post(`/api/offers/${T}/sign`, signBody);
+  assert.strictEqual(signed.status, 200, JSON.stringify(signed.body));
+  assert.match(signed.body.documentHash, /^[a-f0-9]{64}$/);
+  ok(`документ подписан, хеш ${signed.body.documentHash.slice(0, 16)}…`);
+
+  const again = await post(`/api/offers/${T}/sign`, signBody);
+  assert.strictEqual(again.status, 409);
+  assert.strictEqual((await post(`/api/offers/${T}/pages/1/ack`)).status, 409);
+  ok('подписанный документ нельзя подписать повторно или изменить отметки');
+
+  const final = Buffer.from(await (await fetch(`${BASE}${signed.body.pdfUrl}`)).arrayBuffer());
+  const { PDFDocument } = require('pdf-lib');
+  const pages = (await PDFDocument.load(final)).getPageCount();
+  assert.ok(pages >= 4, `в итоговом PDF ${pages} стр., ожидалось 3 + лист подписания`);
+  const out = path.join(os.tmpdir(), 'elite-offer-doc-sample.pdf');
+  fs.writeFileSync(out, final);
+  ok(`итоговый PDF: 3 стр. документа + ${pages - 3} лист подписания (${Math.round(final.length / 1024)} КБ) → ${out}`);
+
+  const { body: { events } } = await api(`/api/admin/offers/${offer.id}/events`, { headers: { 'x-admin-token': ADMIN } });
+  const types = events.map((e) => e.type);
+  ['created', 'uploaded', 'converted', 'opened', 'page_viewed', 'page_acked', 'name_entered', 'signature_drawn', 'signed']
+    .forEach((t) => assert.ok(types.includes(t), `в журнале нет события ${t}`));
+  assert.strictEqual(types.filter((t) => t === 'page_acked').length, 3);
+  ok(`журнал действий: ${events.length} событий, все этапы зафиксированы`);
+
+  const src = await fetch(`${BASE}/api/admin/offers/${offer.id}/source.docx`, { headers: { 'x-admin-token': ADMIN } });
+  assert.ok(Buffer.from(await src.arrayBuffer()).equals(fixture));
+  ok('менеджер скачивает исходный .docx без изменений');
 }
 
 const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
@@ -176,7 +287,8 @@ const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')]
 });
 
 const wait = async () => {
-  for (let i = 0; i < 50; i += 1) {
+  // Первый запуск после установки зависимостей бывает медленным (антивирус проверяет node_modules).
+  for (let i = 0; i < 300; i += 1) {
     try { await fetch(BASE + '/api/offers/none'); return; } catch { await new Promise((r) => setTimeout(r, 100)); }
   }
   throw new Error('Сервер не поднялся');
@@ -187,6 +299,13 @@ const wait = async () => {
     await wait();
     console.log('\n  Сквозной тест модуля оферты\n');
     await run();
+    if (converterAvailable()) {
+      console.log('\n  Загруженный Word-документ\n');
+      await runDocx();
+    } else {
+      console.log('\n  ! Сценарий с .docx пропущен: нет LibreOffice (soffice) и не задан SOFFICE_DOCKER_IMAGE');
+    }
+    console.log(`\n  Все проверки пройдены: ${checks}\n`);
     process.exitCode = 0;
   } catch (e) {
     console.error('\n  ОШИБКА:', e.message);
