@@ -111,11 +111,17 @@ data/                     — подписи и PDF (в git не попадае�
 
 Файлы документа лежат в `DATA_DIR/docs/<id>/` (`source.docx` и/или `source.pdf`) — их тоже нужно бэкапить.
 
-**LibreOffice на сервере** (уже установлен на дроплете вместе со swap 2 ГБ):
+**LibreOffice на сервере** (уже установлен на дроплете вместе со swap 2 ГБ) — нужна свежая версия
+из официального PPA. Версия 7.3 из штатного репозитория Ubuntu 22.04 теряет целые страницы в `.docx`,
+экспортированных из Apple Pages (проверено на реальном договоре: 3 первые страницы пустые):
 
 ```bash
+add-apt-repository -y ppa:libreoffice/ppa && apt-get update
 apt-get install -y --no-install-recommends libreoffice-writer-nogui fonts-dejavu fonts-liberation fonts-liberation2 fonts-crosextra-carlito fonts-crosextra-caladea
 ```
+
+Даже свежая версия не повторяет вёрстку Pages точь-в-точь (шапка может наезжать на первую строку).
+Если документ сделан в Pages, надёжнее экспортировать его в PDF и загружать PDF — он показывается как есть.
 
 Шрифты Carlito/Caladea/Liberation метрически совпадают с Calibri/Cambria/Times/Arial — без них
 вёрстка Word-документа «поедет». Конвертации выполняются строго по одной (память).
