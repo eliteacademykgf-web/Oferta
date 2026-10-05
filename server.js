@@ -11,7 +11,7 @@ const config = require('./src/config');
 const store = require('./src/store');
 const { buildOffer, OFFER_VERSION } = require('./src/offer-text');
 const { renderProtocol, renderDocxProtocol, buildSignedPdf } = require('./src/pdf');
-const { convertDocxToPdf, countPages } = require('./src/convert');
+const { convertDocxToPdf, inspectPdf } = require('./src/convert');
 
 const FINAL_ACK_TEXT = 'Я подтверждаю, что ознакомился(ась) со всеми страницами документа, указал(а) достоверные данные и подтверждаю своё согласие с условиями документа.';
 const MIN_PAGE_VIEW_MS = 1000;   // сервер не примет отметку страницы раньше, чем через секунду после её открытия
@@ -147,6 +147,7 @@ const publicView = (offer) => ({
   stage: stageOf(offer),
   docTitle: offer.docTitle || null,
   sourceName: offer.source ? offer.source.originalName : null,
+  sourceFormat: isDocx(offer) ? sourceFormat(offer) : null,
   pageCount: offer.pageCount || null,
   pagesAcked: isDocx(offer) ? ackedCount(offer) : null,
   sentAt: ((offer.events || []).find((e) => e.type === 'sent') || {}).at || null,
@@ -190,52 +191,72 @@ app.post('/api/admin/offers/:id/cancel', requireAdmin, async (req, res) => {
   res.json({ offer: publicView(store.findById(offer.id)) });
 });
 
-// ---- загруженные Word-документы
+// ---- загруженные документы: Word (.docx) или PDF.
+// kind:'docx' — историческое имя типа «загруженный документ»; формат исходника лежит в source.format.
+
+const DOC_MIME = {
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  pdf: 'application/pdf',
+};
+const formatOfName = (name) => ((/\.(docx|pdf)$/i.exec(name) || [])[1] || '').toLowerCase();
+const sourceFormat = (offer) => (offer.source && offer.source.format) || 'docx';
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 10 },
   fileFilter: (req, file, cb) => {
-    const ok = /\.docx$/i.test(decodeFilename(file.originalname));
-    cb(ok ? null : new Error('Нужен файл Word в формате .docx (старый .doc сначала пересохраните в Word как .docx)'), ok);
+    const ok = Boolean(formatOfName(decodeFilename(file.originalname)));
+    cb(ok ? null : new Error('Нужен файл Word (.docx) или PDF (.pdf). Старый .doc сначала пересохраните в Word как .docx'), ok);
   },
 });
 
-const receiveDocx = (req, res, next) => upload.single('file')(req, res, (err) => {
+const receiveDocument = (req, res, next) => upload.single('file')(req, res, (err) => {
   if (!err) return next();
   const message = err.code === 'LIMIT_FILE_SIZE' ? 'Файл больше 20 МБ' : err.message;
   return res.status(400).json({ error: message });
 });
 
-app.post('/api/admin/docs', requireAdmin, receiveDocx, async (req, res) => {
+// Содержимое должно соответствовать расширению: .docx — zip-архив (PK), PDF — заголовок %PDF- в начале файла.
+function contentError(format, buf) {
+  if (format === 'docx' && (buf.length < 4 || buf.readUInt32BE(0) !== 0x504b0304)) {
+    return 'Файл повреждён или это не .docx. Откройте его в Word и сохраните как «Документ Word (.docx)».';
+  }
+  if (format === 'pdf' && !buf.subarray(0, 1024).includes('%PDF-')) {
+    return 'Файл повреждён или это не PDF.';
+  }
+  return null;
+}
+
+app.post('/api/admin/docs', requireAdmin, receiveDocument, async (req, res) => {
   const file = req.file;
   const b = req.body || {};
-  if (!file) return res.status(400).json({ error: 'Выберите файл .docx' });
-  // .docx — это zip-архив: без сигнатуры PK это повреждённый файл или переименованный .doc.
-  if (file.buffer.length < 4 || file.buffer.readUInt32BE(0) !== 0x504b0304) {
-    return res.status(400).json({ error: 'Файл повреждён или это не .docx. Откройте его в Word и сохраните как «Документ Word (.docx)».' });
-  }
+  if (!file) return res.status(400).json({ error: 'Выберите файл .docx или .pdf' });
+  const originalName = decodeFilename(file.originalname).slice(0, 200);
+  const format = formatOfName(originalName);
+  const badContent = contentError(format, file.buffer);
+  if (badContent) return res.status(400).json({ error: badContent });
 
   const id = crypto.randomUUID();
   const dir = store.docDir(id);
   await fsp.mkdir(dir, { recursive: true });
-  const docxPath = path.join(dir, 'source.docx');
-  await fsp.writeFile(docxPath, file.buffer);
+  const sourcePath = path.join(dir, `source.${format}`);
+  await fsp.writeFile(sourcePath, file.buffer);
 
   let pdfBuf;
   let pageCount;
   const startedAt = Date.now();
   try {
-    pdfBuf = await fsp.readFile(await convertDocxToPdf(docxPath, dir));
-    pageCount = await countPages(pdfBuf);
+    // PDF показывается клиенту как есть; Word сначала превращается в PDF.
+    pdfBuf = format === 'pdf' ? file.buffer : await fsp.readFile(await convertDocxToPdf(sourcePath, dir));
+    const info = await inspectPdf(pdfBuf).catch(() => { throw new Error('Не удалось прочитать PDF: файл повреждён'); });
+    if (info.encrypted) throw new Error('PDF защищён паролем или запретом на изменение. Сохраните его без защиты и загрузите снова.');
+    pageCount = info.pageCount;
     if (!pageCount) throw new Error('В документе не найдено ни одной страницы');
   } catch (err) {
-    console.error('[docx] конвертация не удалась:', err.message);
+    console.error(`[${format}] документ не подготовлен:`, err.message);
     await fsp.rm(dir, { recursive: true, force: true });
     return res.status(422).json({ error: err.message });
   }
-
-  const originalName = decodeFilename(file.originalname).slice(0, 200);
   const now = new Date();
   const offer = {
     id,
@@ -250,6 +271,7 @@ app.post('/api/admin/docs', requireAdmin, receiveDocx, async (req, res) => {
     note: (b.note || '').toString().trim().slice(0, 500),
     docTitle: (b.title || '').toString().trim().slice(0, 160) || path.parse(originalName).name,
     source: {
+      format,
       originalName,
       size: file.size,
       uploadedAt: now.toISOString(),
@@ -298,12 +320,13 @@ function sendDocFile(res, offer, name, type, disposition, asciiName, utf8Name) {
   return fs.createReadStream(file).pipe(res);
 }
 
-app.get('/api/admin/offers/:id/source.docx', requireAdmin, (req, res) => {
+// Исходный файл в том виде, в каком его загрузил менеджер.
+app.get('/api/admin/offers/:id/original', requireAdmin, (req, res) => {
   const offer = store.findById(req.params.id);
   if (!offer || !isDocx(offer)) return res.status(404).json({ error: 'Не найдено' });
-  return sendDocFile(res, offer, 'source.docx',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'attachment', `${offer.docNumber}.docx`, offer.source.originalName);
+  const format = sourceFormat(offer);
+  return sendDocFile(res, offer, `source.${format}`, DOC_MIME[format],
+    'attachment', `${offer.docNumber}.${format}`, offer.source.originalName);
 });
 
 // Предпросмотр для менеджера — без записи «клиент открыл документ» в журнал.
@@ -485,6 +508,7 @@ app.post('/api/offers/:token/pages/:n/view', async (req, res) => {
   if (!offer.pageViews || !offer.pageViews[key]) {
     const at = new Date().toISOString();
     await store.updateOffer(offer.id, {
+      firstOpenedAt: offer.firstOpenedAt || at,
       pageViews: { ...(offer.pageViews || {}), [key]: at },
       events: withEvents(offer, newEvent('page_viewed', req, { page: n })),
     });

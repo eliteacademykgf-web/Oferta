@@ -36,17 +36,17 @@
   <!-- кабинет -->
   <main id="panel" class="wrap wide-wrap" hidden>
     <div class="tabs">
-      <button class="tab active" data-tab="docTab">Документ Word</button>
+      <button class="tab active" data-tab="docTab">Документ (Word или PDF)</button>
       <button class="tab" data-tab="textTab">Оферта о бронировании</button>
     </div>
 
     <section class="step" id="docTab">
-      <div class="step-head"><div class="step-num">+</div><h2>Загрузить документ Word</h2></div>
-      <p class="hint">Загрузите готовый документ в формате .docx — система подготовит его к просмотру по страницам и создаст персональную ссылку. Клиент подтвердит каждую страницу, укажет ФИО и распишется.</p>
+      <div class="step-head"><div class="step-num">+</div><h2>Загрузить документ</h2></div>
+      <p class="hint">Загрузите готовый документ Word (.docx) или PDF — система подготовит его к просмотру по страницам и создаст персональную ссылку. Клиент подтвердит каждую страницу, укажет ФИО и распишется.</p>
       <div class="field">
-        <label>Файл .docx <i>*</i></label>
+        <label>Файл .docx или .pdf <i>*</i></label>
         <label class="file-drop" id="fileDrop">
-          <input type="file" id="docFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+          <input type="file" id="docFile" accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
           <span id="fileName">Выберите файл или перетащите его сюда</span>
         </label>
       </div>
@@ -112,7 +112,7 @@
       <div class="step-head"><div class="step-num">≡</div><h2>Оферты</h2></div>
       <div class="filters">
         <button class="chip active" data-filter="all">Все</button>
-        <button class="chip" data-filter="docx">Документы Word</button>
+        <button class="chip" data-filter="docx">Загруженные документы</button>
         <button class="chip" data-filter="viewing">Клиент просматривает</button>
         <button class="chip" data-filter="draft">Ждут подписи</button>
         <button class="chip" data-filter="signed">Подписаны</button>

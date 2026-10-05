@@ -280,7 +280,7 @@ function renderProtocol(offer, document) {
   return done;
 }
 
-// ------------------------------------------------- новый режим: Word-документ
+// ------------------------------------------------- загруженный документ (Word или PDF)
 
 /**
  * Лист подписания загруженного документа (одна-две страницы, добавляются в конец исходника).
@@ -346,11 +346,12 @@ function renderDocxProtocol(offer) {
     ['Устройство / браузер', sig.userAgent || '—'],
   ]);
   // Хеши — мелким шрифтом в одну строку каждый, иначе они переносятся и выталкивают лист на вторую страницу.
+  const isPdfSource = offer.source.format === 'pdf';
   [
-    ['SHA-256 исходного .docx', offer.source.sourceHash],
-    ['SHA-256 PDF для просмотра', offer.source.pdfHash],
+    [`SHA-256 исходного .${isPdfSource ? 'pdf' : 'docx'}`, offer.source.sourceHash],
+    isPdfSource ? null : ['SHA-256 PDF для просмотра', offer.source.pdfHash],
     ['SHA-256 подписания', offer.documentHash],
-  ].forEach(([label, hash]) => {
+  ].filter(Boolean).forEach(([label, hash]) => {
     need(14);
     const y = doc.y;
     doc.font('reg').fontSize(8).fillColor(GRAY).text(label, M + 6, y, { width: 150, lineBreak: false });

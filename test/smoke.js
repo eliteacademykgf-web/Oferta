@@ -204,9 +204,7 @@ async function runDocx() {
 
   const bad = await uploadDocx(Buffer.from('not a docx'), 'fake.docx');
   assert.strictEqual(bad.status, 400);
-  const wrongExt = await uploadDocx(fixture, 'doc.pdf');
-  assert.strictEqual(wrongExt.status, 400);
-  ok('не-.docx и повреждённые файлы отклоняются');
+  ok('повреждённый .docx отклоняется');
 
   const T = offer.token;
   const view = await api(`/api/offers/${T}`);
@@ -276,9 +274,65 @@ async function runDocx() {
   assert.strictEqual(types.filter((t) => t === 'page_acked').length, 3);
   ok(`журнал действий: ${events.length} событий, все этапы зафиксированы`);
 
-  const src = await fetch(`${BASE}/api/admin/offers/${offer.id}/source.docx`, { headers: { 'x-admin-token': ADMIN } });
+  const src = await fetch(`${BASE}/api/admin/offers/${offer.id}/original`, { headers: { 'x-admin-token': ADMIN } });
   assert.ok(Buffer.from(await src.arrayBuffer()).equals(fixture));
   ok('менеджер скачивает исходный .docx без изменений');
+}
+
+// ------------------------------------------------- загруженный PDF (LibreOffice не нужен)
+
+async function runPdf() {
+  const { PDFDocument, StandardFonts } = require('pdf-lib');
+  const made = await PDFDocument.create();
+  const font = await made.embedFont(StandardFonts.Helvetica);
+  made.addPage([595, 842]).drawText('Contract page 1', { x: 60, y: 760, size: 18, font });
+  made.addPage([842, 595]).drawText('Contract page 2 (landscape)', { x: 60, y: 520, size: 18, font });
+  const pdf = Buffer.from(await made.save());
+
+  const up = await uploadDocx(pdf, 'Договор поставки.pdf', { clientName: 'Асанов Бакыт' });
+  assert.strictEqual(up.status, 201, JSON.stringify(up.body));
+  const offer = up.body.offer;
+  assert.strictEqual(offer.sourceFormat, 'pdf');
+  assert.strictEqual(offer.pageCount, 2);
+  assert.strictEqual(offer.docTitle, 'Договор поставки');
+  ok('менеджер загружает .pdf: документ принят без конвертации, 2 страницы');
+
+  assert.strictEqual((await uploadDocx(Buffer.from('just text'), 'fake.pdf')).status, 400);
+  assert.strictEqual((await uploadDocx(fs.readFileSync(path.join(__dirname, 'fixtures', 'sample.docx')), 'word-inside.pdf')).status, 400);
+  assert.strictEqual((await uploadDocx(pdf, 'contract.txt')).status, 400);
+  assert.strictEqual((await uploadDocx(Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(200, 65)]), 'broken.pdf')).status, 422);
+  ok('не-PDF, повреждённый PDF и другие расширения отклоняются');
+
+  const locked = await uploadDocx(fs.readFileSync(path.join(__dirname, 'fixtures', 'encrypted.pdf')), 'locked.pdf');
+  assert.strictEqual(locked.status, 422);
+  assert.match(locked.body.error, /защищён/);
+  ok('PDF с паролем/запретом на изменение отклоняется с понятным сообщением');
+
+  const T = offer.token;
+  const post = (url, body) => api(url, { method: 'POST', body: JSON.stringify(body || {}) });
+  const shown = await fetch(`${BASE}/o/${T}/source.pdf`);
+  assert.ok(Buffer.from(await shown.arrayBuffer()).equals(pdf), 'клиенту должен показываться загруженный PDF байт-в-байт');
+  for (const n of [1, 2]) {
+    assert.strictEqual((await post(`/api/offers/${T}/pages/${n}/view`)).status, 200);
+    await sleep(1100);
+    assert.strictEqual((await post(`/api/offers/${T}/pages/${n}/ack`)).status, 200);
+  }
+  const signed = await post(`/api/offers/${T}/sign`, {
+    fullName: 'Асанов Бакыт Эркинович', signatureImage: makePng(220, 70), finalAck: true,
+  });
+  assert.strictEqual(signed.status, 200, JSON.stringify(signed.body));
+  const final = Buffer.from(await (await fetch(`${BASE}${signed.body.pdfUrl}`)).arrayBuffer());
+  const finalDoc = await PDFDocument.load(final);
+  assert.strictEqual(finalDoc.getPageCount(), 3);
+  assert.strictEqual(Math.round(finalDoc.getPage(1).getSize().width), 842, 'альбомная страница должна остаться альбомной');
+  const out = path.join(os.tmpdir(), 'elite-offer-pdf-sample.pdf');
+  fs.writeFileSync(out, final);
+  ok(`PDF подписан: клиент видел исходный файл как есть, итог — 2 стр. + лист подписания → ${out}`);
+
+  const src = await fetch(`${BASE}/api/admin/offers/${offer.id}/original`, { headers: { 'x-admin-token': ADMIN } });
+  assert.match(src.headers.get('content-type'), /application\/pdf/);
+  assert.ok(Buffer.from(await src.arrayBuffer()).equals(pdf));
+  ok('менеджер скачивает исходный .pdf без изменений');
 }
 
 const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
@@ -299,6 +353,8 @@ const wait = async () => {
     await wait();
     console.log('\n  Сквозной тест модуля оферты\n');
     await run();
+    console.log('\n  Загруженный PDF\n');
+    await runPdf();
     if (converterAvailable()) {
       console.log('\n  Загруженный Word-документ\n');
       await runDocx();

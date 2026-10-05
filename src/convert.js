@@ -66,9 +66,15 @@ function convertDocxToPdf(inPath, outDir) {
   return job;
 }
 
-async function countPages(pdfBuffer) {
-  const pdf = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
-  return pdf.getPageCount();
+async function inspectPdf(pdfBuffer) {
+  try {
+    const pdf = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+    return { pageCount: pdf.getPageCount(), encrypted: pdf.isEncrypted };
+  } catch (err) {
+    // Зашифрованный PDF pdf-lib часто не может даже разобрать; словарь /Encrypt в файле всегда лежит открытым текстом.
+    if (pdfBuffer.includes('/Encrypt')) return { pageCount: 0, encrypted: true };
+    throw err;
+  }
 }
 
-module.exports = { convertDocxToPdf, countPages };
+module.exports = { convertDocxToPdf, inspectPdf };

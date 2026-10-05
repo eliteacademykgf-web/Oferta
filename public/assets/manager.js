@@ -97,7 +97,7 @@ document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click',
   ['docTab', 'textTab'].forEach((id) => { $(id).hidden = id !== tab.dataset.tab; });
 }));
 
-// ------------------------------------------------- загрузка Word-документа
+// ------------------------------------------------- загрузка документа (Word или PDF)
 
 let docFile = null;
 let lastDoc = null;
@@ -121,12 +121,12 @@ $('uploadBtn').addEventListener('click', async () => {
   const err = $('docError');
   err.classList.remove('show');
   if (!docFile) {
-    err.textContent = 'Выберите файл .docx';
+    err.textContent = 'Выберите файл .docx или .pdf';
     err.classList.add('show');
     return;
   }
-  if (!/\.docx$/i.test(docFile.name)) {
-    err.textContent = 'Нужен файл в формате .docx. Старый .doc откройте в Word и сохраните как «Документ Word (.docx)».';
+  if (!/\.(docx|pdf)$/i.test(docFile.name)) {
+    err.textContent = 'Нужен файл Word (.docx) или PDF. Старый .doc откройте в Word и сохраните как «Документ Word (.docx)».';
     err.classList.add('show');
     return;
   }
@@ -282,7 +282,7 @@ async function toggleJournal(id, holder) {
 
 function docxRow(o) {
   const badges = [
-    '<span class="badge word">Word</span>',
+    `<span class="badge word">${o.sourceFormat === 'pdf' ? 'PDF' : 'Word'}</span>`,
     `<span class="badge ${o.stage}">${STAGES[o.stage] || o.stage}</span>`,
   ];
   if (o.status === 'draft') badges.push(`<span class="badge opened">стр. ${o.pagesAcked}/${o.pageCount} подтверждено</span>`);
@@ -311,7 +311,7 @@ function docxRow(o) {
         ${o.pdfUrl ? `<a class="primary" href="${esc(o.pdfUrl)}" target="_blank" rel="noopener">Скачать подписанный PDF</a>` : ''}
         <button data-journal="${o.id}">Журнал</button>
         <button data-preview="${o.id}">Просмотр</button>
-        <button data-source="${o.id}" data-source-name="${esc(o.sourceName || `${o.docNumber}.docx`)}">Оригинал .docx</button>
+        <button data-source="${o.id}" data-source-name="${esc(o.sourceName || `${o.docNumber}.${o.sourceFormat}`)}">Оригинал .${o.sourceFormat}</button>
         ${o.status === 'draft' ? `<button data-cancel="${o.id}">Отменить ссылку</button>` : ''}
       </div>
       <div class="journal" data-journal-holder="${o.id}" hidden></div>
@@ -381,7 +381,7 @@ function renderList() {
     adminFile(`/api/admin/offers/${b.dataset.preview}/source.pdf`, { open: true }).catch((e) => alert(e.message));
   }));
   $('list').querySelectorAll('[data-source]').forEach((b) => b.addEventListener('click', () => {
-    adminFile(`/api/admin/offers/${b.dataset.source}/source.docx`, { filename: b.dataset.sourceName }).catch((e) => alert(e.message));
+    adminFile(`/api/admin/offers/${b.dataset.source}/original`, { filename: b.dataset.sourceName }).catch((e) => alert(e.message));
   }));
   $('list').querySelectorAll('[data-cancel]').forEach((b) => b.addEventListener('click', async () => {
     if (!confirm('Отменить ссылку? Клиент больше не сможет подписать оферту по ней.')) return;
