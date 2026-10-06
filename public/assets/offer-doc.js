@@ -153,7 +153,9 @@ async function renderPage(n) {
     const ratio = Math.min((window.devicePixelRatio || 1) * 1.5, 3, 3000 / viewport.width);
     canvas.width = Math.floor(viewport.width * ratio);
     canvas.height = Math.floor(viewport.height * ratio);
-    $('paper').style.width = `${Math.floor(viewport.width)}px`;
+    // В процентах, а не в пикселях: после отрисовки у страницы появляется вертикальная полоса прокрутки,
+    // контейнер сужается, и пиксельная ширина давала лишнюю горизонтальную прокрутку.
+    $('paper').style.width = `min(${zoom * 100}%, ${900 * zoom}px)`;
     state.renderTask = page.render({ canvas, viewport, transform: ratio !== 1 ? [ratio, 0, 0, ratio, 0, 0] : null });
     await state.renderTask.promise;
     state.renderTask = null;

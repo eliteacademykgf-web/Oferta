@@ -69,6 +69,10 @@ function convertDocxToPdf(inPath, outDir) {
 async function inspectPdf(pdfBuffer) {
   try {
     const pdf = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+    if (!pdf.isEncrypted) {
+      // Пробное копирование страниц — ровно то, что произойдёт при подписании: лучше отказать при загрузке, чем после подписи клиента.
+      await (await PDFDocument.create()).copyPages(pdf, pdf.getPageIndices());
+    }
     return { pageCount: pdf.getPageCount(), encrypted: pdf.isEncrypted };
   } catch (err) {
     // Зашифрованный PDF pdf-lib часто не может даже разобрать; словарь /Encrypt в файле всегда лежит открытым текстом.

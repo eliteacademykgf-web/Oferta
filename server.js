@@ -118,8 +118,10 @@ function decodeFilename(name) {
   return /[^\u0000-ÿ]/.test(raw) ? raw : Buffer.from(raw, 'latin1').toString('utf8');
 }
 
+// RFC 5987 не допускает ' ( ) * в закодированном имени — encodeURIComponent их не экранирует.
 function contentDisposition(disposition, asciiName, utf8Name) {
-  return `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(utf8Name)}`;
+  const encoded = encodeURIComponent(utf8Name).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encoded}`;
 }
 
 const publicView = (offer) => ({
@@ -456,13 +458,15 @@ function fullNameError(name) {
 
 // ------------------------------------------------- загруженный документ: клиент
 
+const REOPEN_QUIET_MS = 10 * 60 * 1000;   // перезагрузки страницы подряд не засоряют журнал
+
 async function docxView(req, res, offer) {
   if (offer.status === 'draft') {
-    const now = new Date().toISOString();
-    await store.updateOffer(offer.id, {
-      firstOpenedAt: offer.firstOpenedAt || now,
-      events: withEvents(offer, newEvent('opened', req)),
-    });
+    const now = new Date();
+    const lastOpen = (offer.events || []).filter((e) => e.type === 'opened').pop();
+    const patch = { firstOpenedAt: offer.firstOpenedAt || now.toISOString() };
+    if (!lastOpen || now - new Date(lastOpen.at) > REOPEN_QUIET_MS) patch.events = withEvents(offer, newEvent('opened', req));
+    await store.updateOffer(offer.id, patch);
   }
   res.json({
     kind: 'docx',

@@ -88,17 +88,18 @@ function createLayout(doc) {
     doc.y += opts.gap === undefined ? 5 : opts.gap;
   };
 
-  const kv = (rows, labelW = 165) => {
-    rows.forEach(([label, value], i) => {
+  const kv = (rows, labelW = 165, pad = 8) => {
+    rows.forEach(([label, value, opts = {}], i) => {
+      const size = opts.small ? 8 : 9.5;
       // Мерить нужно тем же начертанием, которым потом рисуем, иначе строка «выползет» из полосы.
-      doc.font('bold').fontSize(9.5);
+      doc.font('bold').fontSize(size);
       const vh = doc.heightOfString(String(value), { width: W - labelW - 10, lineGap: 1 });
-      const rowH = Math.max(vh, 12) + 8;
+      const rowH = Math.max(vh, 12) + pad;
       need(rowH + 4);
       const y = doc.y;
       if (i % 2 === 0) doc.rect(M, y - 3, W, rowH).fill(SOFT);
       doc.fillColor(GRAY).font('reg').fontSize(9).text(label, M + 6, y, { width: labelW - 12 });
-      doc.fillColor(TEXT).font('bold').fontSize(9.5).text(String(value), M + labelW, y, { width: W - labelW - 10, lineGap: 1 });
+      doc.fillColor(TEXT).font('bold').fontSize(size).text(String(value), M + labelW, y, { width: W - labelW - 10, lineGap: 1 });
       doc.y = y + rowH;
     });
     doc.y += 6;
@@ -118,19 +119,19 @@ function createLayout(doc) {
 
   // Рамка с графической подписью слева, текстовые реквизиты подписи справа.
   const signatureBlock = (signatureImage, side) => {
-    need(150);
+    need(120);
     const sigTop = doc.y;
     const boxW = W * 0.52;
-    doc.rect(M, sigTop, boxW, 110).fill('#FFFFFF').strokeColor(LINE).lineWidth(0.7).stroke();
+    doc.rect(M, sigTop, boxW, 100).fill('#FFFFFF').strokeColor(LINE).lineWidth(0.7).stroke();
     if (signatureImage) {
       try {
         const base64 = signatureImage.split(',')[1];
-        doc.image(Buffer.from(base64, 'base64'), M + 10, sigTop + 8, { fit: [boxW - 20, 70], align: 'center', valign: 'center' });
+        doc.image(Buffer.from(base64, 'base64'), M + 10, sigTop + 8, { fit: [boxW - 20, 62], align: 'center', valign: 'center' });
       } catch { /* повреждённое изображение не должно ломать протокол */ }
     }
-    doc.moveTo(M + 14, sigTop + 84).lineTo(M + boxW - 14, sigTop + 84).strokeColor(LINE).stroke();
+    doc.moveTo(M + 14, sigTop + 76).lineTo(M + boxW - 14, sigTop + 76).strokeColor(LINE).stroke();
     doc.font('reg').fontSize(8).fillColor(GRAY)
-      .text(side.caption, M + 14, sigTop + 88, { width: boxW - 28, align: 'center' });
+      .text(side.caption, M + 14, sigTop + 80, { width: boxW - 28, align: 'center' });
 
     const x = M + boxW + 16;
     const w = W - boxW - 16;
@@ -138,7 +139,7 @@ function createLayout(doc) {
     doc.font('bold').fontSize(11).fillColor(TEXT).text(side.name, x, doc.y + 2, { width: w });
     doc.font('reg').fontSize(9).fillColor(GRAY).text(`Дата: ${fmtDateTime(side.signedAt)}`, x, doc.y + 6, { width: w });
     doc.font('reg').fontSize(8).fillColor(GRAY).text(side.note, x, doc.y + 6, { width: w, lineGap: 1 });
-    doc.y = sigTop + 122;
+    doc.y = sigTop + 110;
   };
 
   return { M, W, need, h1, h2, para, kv, header, signatureBlock };
@@ -304,7 +305,7 @@ function renderDocxProtocol(offer) {
     ['Исходный файл', offer.source.originalName],
     ['Подписант', sig.phone ? `${sig.fullName}, тел. ${sig.phone}` : sig.fullName],
     ['Дата и время подписания', `${fmtDateTime(sig.signedAt)} (${config.timezone})`],
-  ]);
+  ], 165, 5);
 
   h1('1. Подтверждение ознакомления со страницами');
   para('Страницы открывались строго по порядку; каждая подтверждена подписантом отдельной отметкой «Я ознакомился(ась) с содержанием данной страницы». Зафиксированы дата и время каждой отметки.', { color: GRAY, size: 8.5, gap: 8 });
@@ -323,9 +324,9 @@ function renderDocxProtocol(offer) {
       doc.font('reg').fontSize(8.5).fillColor(TEXT)
         .text(`Страница ${n} — ${fmtDateTime(sig.pageAcks[String(n)])}`, x + 20, y + 1.5, { width: colW - 24, lineBreak: false });
     });
-    doc.y = y + 18;
+    doc.y = y + 16;
   }
-  doc.y += 4;
+  doc.y += 2;
   para(`Итоговое подтверждение: «${sig.finalAckText}» — ${fmtDateTime(sig.finalAckAt)}.`, { size: 8.5, gap: 8 });
 
   h1('2. Электронная подпись');
@@ -343,8 +344,8 @@ function renderDocxProtocol(offer) {
     ['ID документа', offer.id],
     ['Ссылка впервые открыта', fmtDateTime(offer.firstOpenedAt)],
     ['IP-адрес', sig.ip || '—'],
-    ['Устройство / браузер', sig.userAgent || '—'],
-  ]);
+    ['Устройство / браузер', sig.userAgent || '—', { small: true }],
+  ], 165, 5);
   // Хеши — мелким шрифтом в одну строку каждый, иначе они переносятся и выталкивают лист на вторую страницу.
   const isPdfSource = offer.source.format === 'pdf';
   [
@@ -360,8 +361,8 @@ function renderDocxProtocol(offer) {
   });
   doc.y += 6;
   para(
-    'Хеш подписания рассчитан от хешей исходного документа, номеров и времени подтверждения каждой страницы, данных подписанта и времени подписания. Любое изменение документа или этих данных после подписания приведёт к несовпадению хеш-суммы. Номер документа и хеш подписания проставлены внизу каждой страницы.',
-    { color: GRAY, size: 8.5 },
+    'Хеш подписания рассчитан от хешей документа, времени подтверждения каждой страницы, данных подписанта и времени подписания: при любом изменении после подписания он перестанет совпадать. Номер документа и хеш проставлены внизу каждой страницы.',
+    { color: GRAY, size: 8 },
   );
 
   doc.end();

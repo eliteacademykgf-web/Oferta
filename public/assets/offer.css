@@ -146,6 +146,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   background: linear-gradient(135deg, var(--navy), var(--blue)); color: #fff;
   box-shadow: 0 14px 36px -10px rgba(26, 94, 144, .5); transition: transform .15s var(--ease), opacity .2s;
 }
+a.btn { text-decoration: none; }
 .btn:active { transform: scale(.985); }
 .btn:disabled { opacity: .45; box-shadow: none; cursor: not-allowed; }
 .btn.wide { width: 100%; }

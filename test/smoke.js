@@ -333,6 +333,29 @@ async function runPdf() {
   assert.match(src.headers.get('content-type'), /application\/pdf/);
   assert.ok(Buffer.from(await src.arrayBuffer()).equals(pdf));
   ok('менеджер скачивает исходный .pdf без изменений');
+
+  // Документ на 10 страниц и длинный User-Agent реального браузера: лист подписания должен остаться одной страницей.
+  const longMade = await PDFDocument.create();
+  const longFont = await longMade.embedFont(StandardFonts.Helvetica);
+  for (let i = 1; i <= 10; i += 1) longMade.addPage([595, 842]).drawText(`Page ${i}`, { x: 60, y: 760, size: 18, font: longFont });
+  const long = await uploadDocx(Buffer.from(await longMade.save()), 'long.pdf');
+  assert.strictEqual(long.status, 201);
+  const LT = long.body.offer.token;
+  for (let n = 1; n <= 10; n += 1) {
+    await post(`/api/offers/${LT}/pages/${n}/view`);
+    await sleep(1050);
+    assert.strictEqual((await post(`/api/offers/${LT}/pages/${n}/ack`)).status, 200);
+  }
+  const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.19675.0 Chrome/152.0.7977.130 Safari/537.36 MSIX';
+  const longSigned = await api(`/api/offers/${LT}/sign`, {
+    method: 'POST',
+    headers: { 'User-Agent': UA },
+    body: JSON.stringify({ fullName: 'Асанов Бакыт Эркинович', phone: '+996 555 010203', signatureImage: makePng(220, 70), finalAck: true }),
+  });
+  assert.strictEqual(longSigned.status, 200, JSON.stringify(longSigned.body));
+  const longFinal = await PDFDocument.load(Buffer.from(await (await fetch(`${BASE}${longSigned.body.pdfUrl}`)).arrayBuffer()));
+  assert.strictEqual(longFinal.getPageCount(), 11, 'лист подписания 10-страничного документа должен занимать одну страницу');
+  ok('10-страничный документ с длинным User-Agent: лист подписания — одна страница (итого 11)');
 }
 
 const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
