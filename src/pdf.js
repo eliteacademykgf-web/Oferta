@@ -14,8 +14,6 @@ const { PDFDocument: PdfLibDocument, StandardFonts, rgb } = require('pdf-lib');
 const config = require('./config');
 
 const NAVY = '#064066';
-const NAVY_DEEP = '#01182d';
-const BLUE = '#1A5E90';
 const GRAY = '#64748B';
 const LINE = '#CBD5E1';
 const TEXT = '#1E293B';
@@ -66,8 +64,8 @@ function createLayout(doc) {
 
   const h1 = (text) => {
     need(40);
-    doc.font('bold').fontSize(13).fillColor(NAVY).text(text.toUpperCase(), M, doc.y, { width: W });
-    doc.moveTo(M, doc.y + 4).lineTo(M + W, doc.y + 4).lineWidth(1).strokeColor(NAVY).stroke();
+    doc.font('bold').fontSize(11.5).fillColor(TEXT).text(text.toUpperCase(), M, doc.y, { width: W });
+    doc.moveTo(M, doc.y + 4).lineTo(M + W, doc.y + 4).lineWidth(0.7).strokeColor(TEXT).stroke();
     doc.y += 12;
     doc.font('reg').fontSize(9.5).fillColor(TEXT);
   };
@@ -107,13 +105,22 @@ function createLayout(doc) {
   };
 
   const header = (title) => {
-    doc.rect(0, 0, doc.page.width, 96).fill(NAVY_DEEP);
-    doc.rect(0, 92, doc.page.width, 4).fill(BLUE);
-    doc.font('bold').fontSize(15).fillColor('#FFFFFF').text(config.company.brand.toUpperCase(), M, 26, { width: W });
-    doc.font('reg').fontSize(8.5).fillColor('#B8D8EC')
-      .text(`${config.company.legalName} · ИНН ${config.company.inn} · ${config.company.phone}`, M, 48, { width: W });
-    doc.font('bold').fontSize(10).fillColor('#FFFFFF').text(title, M, 66, { width: W });
-    doc.y = 120;
+    // Белая шапка в стиле договоров компании: «ELITE» пакет — линия — логотип — линия,
+    // ниже заголовок по центру. Сплошная тёмная полоса на последнем листе выделялась
+    // на фоне белых страниц самого документа.
+    const y0 = 34;
+    doc.font('reg').fontSize(9).fillColor(TEXT).text('«ELITE» пакет', M, y0, { lineBreak: false });
+    const leftEnd = M + doc.widthOfString('«ELITE» пакет') + 10;
+    const logoW = 64;
+    const logoX = M + (W - logoW) / 2;
+    doc.moveTo(leftEnd, y0 + 6).lineTo(logoX - 8, y0 + 6).lineWidth(0.7).strokeColor(TEXT).stroke();
+    doc.moveTo(logoX + logoW + 8, y0 + 6).lineTo(M + W, y0 + 6).lineWidth(0.7).strokeColor(TEXT).stroke();
+    doc.font('bold').fontSize(15).fillColor(NAVY).text('Elite', logoX, y0 - 4, { width: logoW, align: 'center', lineBreak: false });
+    doc.font('reg').fontSize(4.5).fillColor(GRAY).text('ACADEMY', logoX, y0 + 13, { width: logoW, align: 'center', characterSpacing: 1.2, lineBreak: false });
+    doc.font('bold').fontSize(12).fillColor(TEXT).text(title, M, y0 + 36, { width: W, align: 'center' });
+    doc.font('reg').fontSize(8).fillColor(GRAY)
+      .text(`${config.company.legalName} · ИНН ${config.company.inn} · ${config.company.phone}`, M, doc.y + 3, { width: W, align: 'center' });
+    doc.y += 12;
     doc.fillColor(TEXT);
   };
 
