@@ -74,7 +74,7 @@
       <label class="ack locked" id="pageAck">
         <input type="checkbox" id="pageAckInput" disabled />
         <span>
-          <span class="ack-text">Я ознакомился(ась) с содержанием данной страницы.</span>
+          <span class="ack-text"><b class="read-mark">Прочитано.</b> Я ознакомился(ась) с содержанием данной страницы.</span>
           <span class="lock-note" id="pageAckNote">Просмотрите страницу — отметка станет доступна через пару секунд</span>
           <span class="ack-time" id="pageAckTime"></span>
         </span>
@@ -91,16 +91,26 @@
     </div>
   </main>
 
-  <!-- 3. Данные подписанта и подпись -->
+  <!-- 3. Последний лист: данные подписанта и подпись (оформлен как страница документа) -->
   <main id="signScreen" hidden>
-    <div class="wrap">
-      <div class="msg info show" style="margin-top:18px">Все страницы подтверждены. Осталось указать ваши данные и поставить подпись.</div>
+    <div class="wrap wide-doc">
+      <div class="sheet">
+        <div class="sheet-top">
+          <i>«ELITE» пакет</i>
+          <span class="sheet-rule"></span>
+          <b class="sheet-logo">Elite <small>ACADEMY</small></b>
+          <span class="sheet-rule"></span>
+        </div>
 
-      <section class="step">
-        <div class="step-head"><div class="step-num">1</div><h2>Данные подписанта</h2></div>
-        <div class="grid2">
+        <h3 class="sheet-title">ПОДПИСАНИЕ ДОКУМЕНТА</h3>
+        <p class="sheet-center" id="sheetDocTitle"></p>
+        <div class="sheet-meta"><span>г. Бишкек</span><span id="sheetDate"></span></div>
+
+        <p class="sheet-p">Все страницы документа прочитаны. Заказчик подтверждает ознакомление с условиями документа, указывает свои данные и подписывает его простой электронной подписью.</p>
+
+        <div class="sheet-fields">
           <div class="field" id="f-fullName">
-            <label>ФИО полностью <i>*</i></label>
+            <label>Заказчик (ФИО полностью) <i>*</i></label>
             <input id="fullName" autocomplete="name" placeholder="Фамилия Имя Отчество" />
             <div class="err">Укажите фамилию, имя и отчество (если есть)</div>
           </div>
@@ -110,30 +120,29 @@
             <div class="err">Проверьте номер</div>
           </div>
         </div>
-      </section>
 
-      <section class="step" id="signStep">
-        <div class="step-head"><div class="step-num">2</div><h2>Электронная подпись</h2></div>
-        <p class="hint">Распишитесь пальцем или мышью. Подпись войдёт в подписанный документ вместе с датой, временем и отметками о прочтении страниц.</p>
-        <div class="sign-pad" id="signPad">
-          <canvas id="canvas"></canvas>
-          <div class="sign-ph">Распишитесь здесь</div>
-        </div>
-        <div class="sign-tools">
-          <span class="muted">Простая электронная подпись</span>
-          <button type="button" class="link-btn" id="clearSign">Очистить</button>
+        <div class="sheet-sign" id="signStep">
+          <div class="sheet-sign-label">Подпись Заказчика:</div>
+          <div class="sign-pad" id="signPad">
+            <canvas id="canvas"></canvas>
+            <div class="sign-ph">Распишитесь здесь пальцем или мышью</div>
+          </div>
+          <div class="sign-tools">
+            <span class="muted">Простая электронная подпись. Войдёт в документ с датой, временем и отметками о прочтении страниц.</span>
+            <button type="button" class="link-btn" id="clearSign">Очистить</button>
+          </div>
         </div>
 
-        <label class="ack critical" id="finalAck">
+        <label class="ack critical sheet-ack" id="finalAck">
           <input type="checkbox" id="finalAckInput" />
-          <span><span class="ack-text" id="finalAckText"></span></span>
+          <span><b class="read-mark">Прочитано.</b> <span class="ack-text" id="finalAckText"></span></span>
         </label>
+      </div>
 
-        <div class="msg error" id="formError"></div>
-        <p class="muted center" id="submitHint" style="margin-top:16px"></p>
-        <button class="btn wide" id="submitBtn" disabled>Подписать документ</button>
-        <p class="center" style="margin-top:12px"><button type="button" class="link-btn" id="backToDoc">Вернуться к документу</button></p>
-      </section>
+      <div class="msg error" id="formError"></div>
+      <p class="muted center" id="submitHint" style="margin-top:16px"></p>
+      <button class="btn wide" id="submitBtn" disabled>Подписать документ</button>
+      <p class="center" style="margin-top:12px"><button type="button" class="link-btn" id="backToDoc">Вернуться к документу</button></p>
       <div class="footer" id="footer2"></div>
     </div>
   </main>
@@ -151,6 +160,7 @@
     <div class="footer" id="footer3"></div>
   </main>
 
+  <script src="/assets/consent.js"></script>
   <script type="module" src="/assets/offer-doc.js"></script>
 </body>
 </html>

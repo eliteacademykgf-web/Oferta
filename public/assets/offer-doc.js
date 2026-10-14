@@ -263,6 +263,8 @@ let signWired = false;
 function openSign() {
   show('signScreen');
   $('finalAckText').textContent = state.data.finalAckText;
+  $('sheetDocTitle').textContent = state.data.docTitle || '';
+  $('sheetDate').textContent = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   if (!signWired) {
     signWired = true;
     if (state.data.phoneHint && !$('phone').value) $('phone').value = state.data.phoneHint;
