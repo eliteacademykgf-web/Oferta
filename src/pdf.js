@@ -105,15 +105,13 @@ function createLayout(doc) {
   };
 
   const header = (title) => {
-    // Белая шапка в стиле договоров компании: «ELITE» пакет — линия — логотип — линия,
+    // Белая шапка в стиле договоров компании: линия — логотип — линия,
     // ниже заголовок по центру. Сплошная тёмная полоса на последнем листе выделялась
     // на фоне белых страниц самого документа.
     const y0 = 34;
-    doc.font('reg').fontSize(9).fillColor(TEXT).text('«ELITE» пакет', M, y0, { lineBreak: false });
-    const leftEnd = M + doc.widthOfString('«ELITE» пакет') + 10;
     const logoW = 64;
     const logoX = M + (W - logoW) / 2;
-    doc.moveTo(leftEnd, y0 + 6).lineTo(logoX - 8, y0 + 6).lineWidth(0.7).strokeColor(TEXT).stroke();
+    doc.moveTo(M, y0 + 6).lineTo(logoX - 8, y0 + 6).lineWidth(0.7).strokeColor(TEXT).stroke();
     doc.moveTo(logoX + logoW + 8, y0 + 6).lineTo(M + W, y0 + 6).lineWidth(0.7).strokeColor(TEXT).stroke();
     doc.font('bold').fontSize(15).fillColor(NAVY).text('Elite', logoX, y0 - 4, { width: logoW, align: 'center', lineBreak: false });
     doc.font('reg').fontSize(4.5).fillColor(GRAY).text('ACADEMY', logoX, y0 + 13, { width: logoW, align: 'center', characterSpacing: 1.2, lineBreak: false });
